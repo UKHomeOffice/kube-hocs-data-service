@@ -22,6 +22,91 @@ spec:
         version: {{.VERSION}}
     spec:
       containers:
+      - name: hocs-data-service
+        image: quay.io/ukhomeofficedigital/hocs-data-service:{{.VERSION}}
+        env:
+          - name: JAVA_OPTS
+            value: '-Xms150m -Xmx768m'
+          - name: SERVER_PORT
+            value: '8080'
+          - name: ENDPOINTS_INFO_ENABLED
+            value: 'false'
+          - name: SPRING_PROFILES_ACTIVE
+            value: 'postgres'
+          - name: SLS_DB_HOSTNAME
+            valueFrom:
+              secretKeyRef:
+                name: hocs-rds-access
+                key: endpoint
+          - name: SLS_DB_PORT
+            valueFrom:
+              secretKeyRef:
+                name: hocs-rds-access
+                key: port
+          - name: SLS_DB_NAME
+            valueFrom:
+              secretKeyRef:
+                name: hocs-rds-access
+                key: database_name
+          - name: SLS_SCHEMA_NAME
+            value:
+              'hocs_dataservice'
+          - name: SLS_DB_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: hocs-rds-access
+                key: username
+          - name: SLS_DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: hocs-rds-access
+                key: password
+          - name: ENV_HOCS_API_USER
+            valueFrom:
+              secretKeyRef:
+                name: hocs-api-access
+                key: api_user
+          - name: ENV_HOCS_API_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: hocs-api-access
+                key: api_password
+          - name: ENV_HOCS_API_HOST
+            valueFrom:
+              secretKeyRef:
+                name: hocs-api-access
+                key: api_host
+        resources:
+          limits:
+            memory: 1024Mi
+            cpu: 400m
+          requests:
+            memory: 1024Mi
+            cpu: 200m
+        ports:
+          - name: http
+            containerPort: 8080
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+            httpHeaders:
+              - name: X-probe
+                value: kubelet
+          initialDelaySeconds: 180
+          periodSeconds: 20
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+            httpHeaders:
+              - name: X-probe
+                value: kubelet
+          initialDelaySeconds: 180
+          periodSeconds: 20
+          timeoutSeconds: 10
+        imagePullPolicy: Always
       - name: vault-sidekick
         image: quay.io/ukhomeofficedigital/vault-sidekick:v0.2.0
         imagePullPolicy: Always
@@ -52,7 +137,7 @@ spec:
           - mountPath: /etc/nginx/secrets
             name: secrets
       - name: proxy
-        image: quay.io/ukhomeofficedigital/nginx-proxy:v3.2.0
+        image: quay.io/ukhomeofficedigital/nginx-proxy:v3.2
         imagePullPolicy: Always
         resources:
          limits:
@@ -65,7 +150,7 @@ spec:
           - name: PROXY_SERVICE_HOST
             value: '127.0.0.1'
           - name: PROXY_SERVICE_PORT
-            value: '9000'
+            value: '8080'
           - name: NAXSI_USE_DEFAULT_RULES
             value: 'FALSE'
           - name: ENABLE_UUID_PARAM
@@ -76,8 +161,6 @@ spec:
             value: /etc/nginx/secrets/hocs-data-service-bundle.pem
           - name: SERVER_KEY
             value: /etc/nginx/secrets/hocs-data-service-key.pem
-          - name: ADD_NGINX_SERVER_CFG
-            value: 'gzip off;'
         volumeMounts:
           - name: secrets
             mountPath: /etc/nginx/secrets
@@ -85,89 +168,6 @@ spec:
         ports:
           - name: https
             containerPort: 10443
-      - name: hocs-data-service
-        image: quay.io/ukhomeofficedigital/hocs-data-service:{{.VERSION}}
-        env:
-          - name: JAVA_OPTS
-            value: '-Xms150m -Xmx250m'
-          - name: SERVER_PORT
-            value: '9001'
-          - name: ENDPOINTS_INFO_ENABLED
-            value: 'false'
-          - name: SPRING_PROFILES_ACTIVE
-            value: 'postgres'
-          - name: SLS_DB_HOSTNAME
-            valueFrom:
-              secretKeyRef:
-                name: hocs-rds-access
-                key: endpoint
-          - name: SLS_DB_PORT
-            valueFrom:
-              secretKeyRef:
-                name: hocs-rds-access
-                key: port
-          - name: SLS_DB_NAME
-            valueFrom:
-              secretKeyRef:
-                name: hocs-rds-access
-                key: database_name
-          - name: SLS_SCHEMA_NAME
-            value:
-              'hocs_data'
-          - name: SLS_DB_USERNAME
-            valueFrom:
-              secretKeyRef:
-                name: hocs-rds-access
-                key: username
-          - name: SLS_DB_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: hocs-rds-access
-                key: password
-          - name: ENV_HOCS_API_USER
-            valueFrom:
-              secretKeyRef:
-                name: hocs-api-access
-                key: api_user
-          - name: ENV_HOCS_API_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: hocs-api-access
-                key: api_password
-          - name: ENV_HOCS_API_HOST
-            valueFrom:
-              secretKeyRef:
-                name: hocs-api-access
-                key: api_host
-        resources:
-          limits:
-            memory: 612Mi
-          requests:
-            memory: 484Mi
-        ports:
-          - name: http
-            containerPort: 9001
-        livenessProbe:
-          httpGet:
-            path: /healthz
-            port: http
-            httpHeaders:
-              - name: X-probe
-                value: kubelet
-          initialDelaySeconds: 240
-          periodSeconds: 20
-          timeoutSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /healthz
-            port: http
-            httpHeaders:
-              - name: X-probe
-                value: kubelet
-          initialDelaySeconds: 240
-          periodSeconds: 20
-          timeoutSeconds: 10
-        imagePullPolicy: Always
       volumes:
       - name: secrets
         emptyDir:

@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-export WHITELIST=${WHITELIST:-0.0.0.0/0}
 
 if [ $ENVIRONMENT == "prod" ]
 then

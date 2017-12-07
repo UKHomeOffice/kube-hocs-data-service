@@ -5,7 +5,6 @@ metadata:
   annotations:
     kubernetes.io/tls-acme: "true"
     ingress.kubernetes.io/secure-backends: "true"
-    ingress.kubernetes.io/whitelist-source-range: "{{.WHITELIST}}"
   name: hocs-data-service
 spec:
   rules:
