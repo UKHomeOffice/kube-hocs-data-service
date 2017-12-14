@@ -61,6 +61,21 @@ spec:
               secretKeyRef:
                 name: hocs-rds-access
                 key: password
+          - name: ENV_HOCS_API_USER
+            valueFrom:
+              secretKeyRef:
+                name: hocs-api-access
+                key: api_user
+          - name: ENV_HOCS_API_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: hocs-api-access
+                key: api_password
+          - name: ENV_HOCS_API_HOST
+            valueFrom:
+              secretKeyRef:
+                name: hocs-api-access
+                key: api_host
         resources:
           limits:
             memory: 1024Mi
