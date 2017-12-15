@@ -20,13 +20,67 @@ spec:
       labels:
         name: hocs-data-service
         version: {{.VERSION}}
+       annotations:
+        pod.beta.kubernetes.io/init-containers: '
+[
+   {
+      "name": "vaultjks",
+      "image": "quay.io/ukhomeofficedigital/vaultjks:v0.1.0",
+      "imagePullPolicy": "Always",
+      "env": [
+         {
+            "name": "VAULT_ADDR",
+            "value": "https://vault.vault.svc.cluster.local:8200"
+         },
+         {
+            "name": "VAULT_TOKEN",
+            "valueFrom": {
+               "secretKeyRef": {
+                  "name": "store-token",
+                  "key": "token"
+               }
+            }
+         },
+         {
+            "name": "VAULT_PKI_PATH",
+            "value": "services/hocs-{{.ENVIRONMENT}}/pki"
+         },
+         {
+            "name": "VAULT_ROLE_NAME",
+            "value": "default"
+         },
+         {
+            "name": "SLEEP_FOREVER",
+            "value": "false"
+         },
+         {
+            "name": "IP_SAN",
+            "valueFrom": {
+               "fieldRef": {
+                  "apiVersion": "v1",
+                  "fieldPath": "status.podIP"
+               }
+            }
+         }
+      ],
+      "volumeMounts": [
+         {
+            "mountPath": "/data",
+            "name": "javapki"
+         }
+      ]
+   }
+]
+        '
     spec:
       containers:
       - name: hocs-data-service
         image: quay.io/ukhomeofficedigital/hocs-data-service:{{.VERSION}}
         env:
           - name: JAVA_OPTS
-            value: '-Xms150m -Xmx768m'
+            value: '-Xms150m -Xmx768m -Djavax.net.ssl.trustStore=/data/truststore.jks'
+          - name: JDK_TRUST_FILE
+            value: '/data/truststore.jks'
           - name: SERVER_PORT
             value: '8080'
           - name: ENDPOINTS_INFO_ENABLED
@@ -107,6 +161,10 @@ spec:
           periodSeconds: 20
           timeoutSeconds: 10
         imagePullPolicy: Always
+        volumeMounts:
+          - mountPath: /data
+            name: javapki
+            readOnly: true
       - name: vault-sidekick
         image: quay.io/ukhomeofficedigital/vault-sidekick:v0.2.0
         imagePullPolicy: Always
@@ -170,5 +228,8 @@ spec:
             containerPort: 10443
       volumes:
       - name: secrets
+        emptyDir:
+          medium: "Memory"
+      - name: javapki
         emptyDir:
           medium: "Memory"
