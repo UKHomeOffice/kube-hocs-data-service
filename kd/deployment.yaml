@@ -20,7 +20,7 @@ spec:
       labels:
         name: hocs-data-service
         version: {{.VERSION}}
-       annotations:
+      annotations:
         pod.beta.kubernetes.io/init-containers: '
 [
    {
