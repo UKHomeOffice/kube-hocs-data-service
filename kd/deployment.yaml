@@ -78,7 +78,7 @@ spec:
         image: quay.io/ukhomeofficedigital/hocs-data-service:{{.VERSION}}
         env:
           - name: JAVA_OPTS
-            value: '-Xms150m -Xmx768m -Djavax.net.ssl.trustStore=/data/truststore.jks'
+            value: '-Xms150m -Xmx250m -Djavax.net.ssl.trustStore=/data/truststore.jks'
           - name: JDK_TRUST_FILE
             value: '/data/truststore.jks'
           - name: SERVER_PORT
@@ -132,11 +132,11 @@ spec:
                 key: api_host
         resources:
           limits:
-            memory: 1024Mi
-            cpu: 400m
+            memory: 612Mi
+            cpu: 1600m
           requests:
-            memory: 1024Mi
-            cpu: 200m
+            memory: 484Mi
+            cpu: 100m
         ports:
           - name: http
             containerPort: 8080
