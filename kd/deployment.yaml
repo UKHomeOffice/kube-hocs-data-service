@@ -6,7 +6,7 @@ metadata:
   labels:
     version: {{.VERSION}}
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       name: hocs-data-service
@@ -130,6 +130,12 @@ spec:
               secretKeyRef:
                 name: hocs-api-access
                 key: api_host
+          - name: ENV_HOCS_REDIS_HOST
+            value:
+              'redis'
+          - name: ENV_HOCS_REDIS_PORT
+            value:
+              '6379'
         resources:
           limits:
             memory: 612Mi
