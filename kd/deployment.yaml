@@ -104,7 +104,7 @@ spec:
                 key: database_name
           - name: SLS_SCHEMA_NAME
             value:
-              'hocs_data_service'
+              'hocs_data_service_1'
           - name: SLS_DB_USERNAME
             valueFrom:
               secretKeyRef:
