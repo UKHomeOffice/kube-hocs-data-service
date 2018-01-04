@@ -132,10 +132,10 @@ spec:
                 key: api_host
           - name: ENV_HOCS_REDIS_HOST
             value:
-              'redis'
+              'redis-sentinel'
           - name: ENV_HOCS_REDIS_PORT
             value:
-              '6379'
+              '26379'
         resources:
           limits:
             memory: 612Mi
