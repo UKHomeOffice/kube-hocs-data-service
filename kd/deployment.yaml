@@ -136,16 +136,6 @@ spec:
           - name: SPRING_REDIS_PORT
             value:
               '6379'
-          - name: AUTH_USER
-            valueFrom:
-              secretKeyRef:
-                name: hocs-basic-auth
-                key: hds_user   
-          - name: AUTH_PASS
-            valueFrom:
-              secretKeyRef:
-                name: hocs-basic-auth
-                key: hds_pass 
         resources:
           limits:
             memory: 612Mi
