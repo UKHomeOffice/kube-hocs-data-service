@@ -138,10 +138,10 @@ spec:
               '6379'
         resources:
           limits:
-            memory: 612Mi
+            memory: 1024Mi
             cpu: 1600m
           requests:
-            memory: 484Mi
+            memory: 630Mi
             cpu: 100m
         ports:
           - name: http
