@@ -12,4 +12,5 @@ cd kd
 kd --insecure-skip-tls-verify --timeout 5m0s \
    --file ingress.yaml \
    --file service.yaml \
-   --file deployment.yaml
+   --file deployment.yaml \
+   --file autoscale.yaml
