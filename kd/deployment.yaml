@@ -78,7 +78,7 @@ spec:
         image: quay.io/ukhomeofficedigital/hocs-data-service:{{.VERSION}}
         env:
           - name: JAVA_OPTS
-            value: '-Xms150m -Xmx250m -Djavax.net.ssl.trustStore=/data/truststore.jks'
+            value: '-Xms150m -Xmx768m -Djavax.net.ssl.trustStore=/data/truststore.jks'
           - name: JDK_TRUST_FILE
             value: '/data/truststore.jks'
           - name: SERVER_PORT
