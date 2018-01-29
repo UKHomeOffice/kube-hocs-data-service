@@ -1,5 +1,9 @@
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
+metadata:
+  name: hocs-data-service
+  labels:
+    version: {{.VERSION}}
 spec:
   maxReplicas: 2
   minReplicas: 1
