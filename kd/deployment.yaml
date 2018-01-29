@@ -139,7 +139,7 @@ spec:
         resources:
           limits:
             memory: 1024Mi
-            cpu: 1600m
+            cpu: 1000m
           requests:
             memory: 630Mi
             cpu: 100m
@@ -148,7 +148,7 @@ spec:
             containerPort: 8080
         livenessProbe:
           httpGet:
-            path: /healthz
+            path: /actuator/healthz
             port: http
             httpHeaders:
               - name: X-probe
@@ -158,7 +158,7 @@ spec:
           timeoutSeconds: 10
         readinessProbe:
           httpGet:
-            path: /healthz
+            path: /actuator/healthz
             port: http
             httpHeaders:
               - name: X-probe
