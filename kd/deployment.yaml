@@ -43,7 +43,7 @@ spec:
          },
          {
             "name": "VAULT_PKI_PATH",
-            "value": "services/hocs-{{.ENVIRONMENT}}/pki"
+            "value": "services/${NAMESPACE}/pki"
          },
          {
             "name": "VAULT_ROLE_NAME",
