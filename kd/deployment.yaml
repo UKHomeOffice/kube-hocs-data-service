@@ -136,11 +136,6 @@ spec:
           - name: SPRING_REDIS_PORT
             value:
               '6379'
-          - name: ENV_ALF_USER_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: hocs-api-access
-                key: default_password
         resources:
           limits:
             memory: 1024Mi
