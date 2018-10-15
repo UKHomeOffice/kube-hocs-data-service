@@ -6,7 +6,7 @@ metadata:
   labels:
     version: {{.VERSION}}
 spec:
-  replicas: 1
+  replicas: {{.REPLICAS}}
   selector:
     matchLabels:
       name: hocs-data-service
@@ -19,223 +19,232 @@ spec:
     metadata:
       labels:
         name: hocs-data-service
+        
         version: {{.VERSION}}
-      annotations:
-        pod.beta.kubernetes.io/init-containers: '
-[
-   {
-      "name": "vaultjks",
-      "image": "quay.io/ukhomeofficedigital/vaultjks:v0.1.0",
-      "imagePullPolicy": "Always",
-      "env": [
-         {
-            "name": "VAULT_ADDR",
-            "value": "https://vault.vault.svc.cluster.local:8200"
-         },
-         {
-            "name": "VAULT_TOKEN",
-            "valueFrom": {
-               "secretKeyRef": {
-                  "name": "store-token",
-                  "key": "token"
-               }
-            }
-         },
-         {
-            "name": "VAULT_PKI_PATH",
-            "value": "services/{{.KUBE_NAMESPACE}}/pki"
-         },
-         {
-            "name": "VAULT_ROLE_NAME",
-            "value": "default"
-         },
-         {
-            "name": "SLEEP_FOREVER",
-            "value": "false"
-         },
-         {
-            "name": "IP_SAN",
-            "valueFrom": {
-               "fieldRef": {
-                  "apiVersion": "v1",
-                  "fieldPath": "status.podIP"
-               }
-            }
-         }
-      ],
-      "volumeMounts": [
-         {
-            "mountPath": "/data",
-            "name": "javapki"
-         }
-      ]
-   }
-]
-        '
     spec:
-      containers:
-      - name: hocs-data-service
-        image: quay.io/ukhomeofficedigital/hocs-data-service:{{.VERSION}}
-        env:
-          - name: JAVA_OPTS
-            value: '-Xms150m -Xmx768m -Djavax.net.ssl.trustStore=/data/truststore.jks'
-          - name: JDK_TRUST_FILE
-            value: '/data/truststore.jks'
-          - name: SERVER_PORT
-            value: '8080'
-          - name: ENDPOINTS_INFO_ENABLED
-            value: 'false'
-          - name: SPRING_PROFILES_ACTIVE
-            value: 'postgres'
-          - name: DB_HOST
-            valueFrom:
-              secretKeyRef:
-                name: hocs-rds-access
-                key: endpoint
-          - name: DB_PORT
-            valueFrom:
-              secretKeyRef:
-                name: hocs-rds-access
-                key: port
-          - name: DB_NAME
-            valueFrom:
-              secretKeyRef:
-                name: hocs-rds-access
-                key: database_name
-          - name: DB_SCHEMA_NAME
-            value:
-              'hocs_data_service_001'
-          - name: DB_USERNAME
-            valueFrom:
-              secretKeyRef:
-                name: hocs-rds-access
-                key: username
-          - name: DB_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: hocs-rds-access
-                key: password
-          - name: ALF_API_USER
-            valueFrom:
-              secretKeyRef:
-                name: hocs-api-access
-                key: api_user
-          - name: ALF_API_PASS
-            valueFrom:
-              secretKeyRef:
-                name: hocs-api-access
-                key: api_password
-          - name: ALF_API_HOST
-            valueFrom:
-              secretKeyRef:
-                name: hocs-api-access
-                key: api_host
-          - name: SPRING_REDIS_HOST
-            value:
-              'redis'
-          - name: SPRING_REDIS_PORT
-            value:
-              '6379'
-        resources:
-          limits:
-            memory: 1024Mi
-            cpu: 300m
-          requests:
-            memory: 630Mi
-            cpu: 100m
-        ports:
-          - name: http
-            containerPort: 8080
-        livenessProbe:
-          httpGet:
-            path: /actuator/healthz
-            port: http
-            httpHeaders:
-              - name: X-probe
-                value: kubelet
-          initialDelaySeconds: 155
-          periodSeconds: 20
-          timeoutSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /actuator/healthz
-            port: http
-            httpHeaders:
-              - name: X-probe
-                value: kubelet
-          initialDelaySeconds: 155
-          periodSeconds: 20
-          timeoutSeconds: 10
-        imagePullPolicy: Always
-        volumeMounts:
-          - mountPath: /data
-            name: javapki
-            readOnly: true
-      - name: vault-sidekick
-        image: quay.io/ukhomeofficedigital/vault-sidekick:v0.2.0
-        imagePullPolicy: Always
-        resources:
-         limits:
-          memory: "100Mi"
-          cpu: 100m
-         requests:
-          memory: "50Mi"
-          cpu: 100m
-        args:
-          - -output=/etc/nginx/secrets
-          - -tls-skip-verify=true
-          - -cn=pki:services/{{.KUBE_NAMESPACE}}/pki/issue/default:common_name=hocs-data-service.{{.KUBE_NAMESPACE}}.svc.cluster.local,file=/etc/nginx/secrets/hocs-data-service,fmt=bundle
-        env:
-          - name: VAULT_ADDR
-            value: "https://vault.vault.svc.cluster.local:8200"
-          - name: NAMESPACE
+      imagePullSecrets:
+        - name: registrykey
+      initContainers:
+        - name: truststore
+          image: quay.io/ukhomeofficedigital/cfssl-sidekick-jks:v0.0.6
+          securityContext:
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - SETUID
+                - SETGID
+          args:
+            - --certs=/certs
+            - --command=/usr/bin/create-keystore.sh /certs/tls.pem /certs/tls-key.pem /etc/ssl/certs/acp-root.crt
+            - --domain=hocs-data-service.${KUBE_NAMESPACE}.svc.cluster.local
+            - --domain=localhost
+            - --onetime=true
+          env:
+          - name: KUBE_NAMESPACE
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
-          - name: VAULT_TOKEN
-            valueFrom:
-              secretKeyRef:
-                name: store-token
-                key: token
-        volumeMounts:
-          - mountPath: /etc/nginx/secrets
-            name: secrets
-      - name: proxy
-        image: quay.io/ukhomeofficedigital/nginx-proxy:v3.2
-        imagePullPolicy: Always
-        resources:
-         limits:
-          memory: "100Mi"
-          cpu: 100m
-         requests:
-          memory: "50Mi"
-          cpu: 100m
-        env:
-          - name: PROXY_SERVICE_HOST
-            value: '127.0.0.1'
-          - name: PROXY_SERVICE_PORT
-            value: '8080'
-          - name: NAXSI_USE_DEFAULT_RULES
-            value: 'FALSE'
-          - name: ENABLE_UUID_PARAM
-            value: 'FALSE'
-          - name: HTTPS_REDIRECT
-            value: 'FALSE'
-          - name: SERVER_CERT
-            value: /etc/nginx/secrets/hocs-data-service-bundle.pem
-          - name: SERVER_KEY
-            value: /etc/nginx/secrets/hocs-data-service-key.pem
-        volumeMounts:
-          - name: secrets
-            mountPath: /etc/nginx/secrets
+          volumeMounts:
+          - name: certs
+            mountPath: /certs
+          - name: keystore
+            mountPath: /etc/keystore
+          - name: bundle
+            mountPath: /etc/ssl/certs
             readOnly: true
-        ports:
-          - name: https
-            containerPort: 10443
+      containers:
+        - name: certs
+          image: quay.io/ukhomeofficedigital/cfssl-sidekick:v0.0.6
+          securityContext:
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - SETUID
+                - SETGID
+          args:
+            - --certs=/certs
+            - --domain=hocs-data-service.${KUBE_NAMESPACE}.svc.cluster.local
+            - --expiry=8760h
+            - --command=/usr/local/scripts/trigger_nginx_reload.sh
+          env:
+            - name: KUBE_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          volumeMounts:
+            - name: certs
+              mountPath: /certs
+            - name: bundle
+              mountPath: /etc/ssl/certs
+              readOnly: true
+
+        - name: proxy
+          image: quay.io/ukhomeofficedigital/nginx-proxy:v3.2.11
+          imagePullPolicy: Always
+          securityContext:
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - SETUID
+                - SETGID
+          resources:
+            limits:
+              memory: "100Mi"
+              cpu: 100m
+            requests:
+              memory: "50Mi"
+              cpu: 100m
+          env:
+            - name: PROXY_SERVICE_HOST
+              value: '127.0.0.1'
+            - name: PROXY_SERVICE_PORT
+              value: '8080'
+            - name: NAXSI_USE_DEFAULT_RULES
+              value: 'FALSE'
+            - name: ENABLE_UUID_PARAM
+              value: 'FALSE'
+            - name: HTTPS_REDIRECT
+              value: 'FALSE'
+            # - name: BASIC_AUTH
+            #   value: /etc/nginx/authsecrets/htpasswd
+            - name: SERVER_CERT
+              value: /certs/tls.pem
+            - name: SERVER_KEY
+              value: /certs/tls-key.pem
+            - name: ADD_NGINX_SERVER_CFG
+              value: 'gzip off; location = /reload { allow 127.0.0.1; deny all; content_by_lua_block { os.execute("touch /tmp/nginx-reload-triggered; /usr/local/openresty/nginx/sbin/nginx -s reload; touch /tmp/nginx-reload-complete;") } }'
+          volumeMounts:
+            - name: certs
+              mountPath: /certs
+              readOnly: true
+            - name: secrets
+              mountPath: /etc/nginx/secrets
+              readOnly: true
+            # - name: auth-secrets
+            #   mountPath: /etc/nginx/authsecrets
+            #   readOnly: true
+          ports:
+            - name: https
+              containerPort: 10443
+        - name: hocs-data-service
+          image: quay.io/ukhomeofficedigital/hocs-data-service:{{.VERSION}}
+          imagePullPolicy: Always
+          securityContext:
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - SETUID
+                - SETGID
+
+
+
+          env:
+            - name: JAVA_OPTS
+              value: '-Xms150m -Xmx768m -Djavax.net.ssl.trustStore=/etc/keystore/truststore.jks
+            - name: JDK_TRUST_FILE
+              value: '/etc/keystore/truststore.jks'
+            - name: SERVER_PORT
+              value: '8080'
+            - name: ENDPOINTS_INFO_ENABLED
+              value: 'false'
+            - name: SPRING_PROFILES_ACTIVE
+              value: 'postgres'
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{.KUBE_NAMESPACE}}-postgres-rds
+                  key: endpoint
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{.KUBE_NAMESPACE}}-postgres-rds
+                  key: port
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{.KUBE_NAMESPACE}}-postgres-rds
+                  key: default_db
+            - name: DB_SCHEMA_NAME
+              value:
+                'hocs_data_service_001'
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{.KUBE_NAMESPACE}}-postgres-rds
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{.KUBE_NAMESPACE}}-postgres-rds
+                  key: password
+            - name: ALF_API_USER
+              valueFrom:
+                secretKeyRef:
+                  name: hocs-api-access
+                  key: api_user
+            - name: ALF_API_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: hocs-api-access
+                  key: api_password
+            - name: ALF_API_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: hocs-api-access
+                  key: api_host
+            - name: SPRING_REDIS_HOST
+              value:
+                'redis'
+            - name: SPRING_REDIS_PORT
+              value:
+                '6379'
+          resources:
+            limits:
+              cpu: 700m
+              memory: 2048Mi
+            requests:
+              cpu: 100m
+              memory: 630Mi
+          ports:
+            - name: http
+              containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+              httpHeaders:
+                - name: X-probe
+                  value: kubelet
+            initialDelaySeconds: 155
+            periodSeconds: 20
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+              httpHeaders:
+                - name: X-probe
+                  value: kubelet
+            initialDelaySeconds: 155
+            periodSeconds: 20
+            timeoutSeconds: 10
+          volumeMounts:
+            - mountPath: /etc/keystore
+              name: keystore
+              readOnly: true
       volumes:
-      - name: secrets
-        emptyDir:
-          medium: "Memory"
-      - name: javapki
-        emptyDir:
-          medium: "Memory"
+        - name: keystore
+          emptyDir:
+            medium: "Memory"
+        - name: certs
+          emptyDir:
+            medium: "Memory"
+        - name: bundle
+          configMap:
+            name: bundle
+        - name: secrets
+          emptyDir:
+            medium: "Memory"
+        # - name: auth-secrets
+        #   secret:
+        #     secretName: ui-casework-creds
