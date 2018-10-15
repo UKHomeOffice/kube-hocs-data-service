@@ -3,15 +3,15 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   annotations:
-    kubernetes.io/tls-acme: "true"
     ingress.kubernetes.io/secure-backends: "true"
-    ingress.kubernetes.io/auth-type: basic
-    ingress.kubernetes.io/auth-secret: hocs-basic-auth
-    ingress.kubernetes.io/auth-realm: "Authentication Required"
+    kubernetes.io/ingress.class: nginx-external
+    stable.k8s.psg.io/kcm.provider: http
+  labels:
+    stable.k8s.psg.io/kcm.class: default
   name: hocs-data-service
 spec:
   rules:
-  - host: dataservice.{{.DNS_PREFIX}}hocs.homeoffice.gov.uk
+  - host: {{.DOMAIN_NAME}}
     http:
       paths:
       - backend:
@@ -20,5 +20,5 @@ spec:
         path: /
   tls:
   - hosts:
-    - dataservice.{{.DNS_PREFIX}}hocs.homeoffice.gov.uk
+    - {{.DOMAIN_NAME}}
     secretName: letsencrypt-hocs-data-service
