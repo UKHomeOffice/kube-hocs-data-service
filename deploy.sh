@@ -11,7 +11,7 @@ if [[ ${ENVIRONMENT} == "prod" ]] ; then
     echo "deploy ${VERSION} to prod namespace, using HOCS_DATA_SERVICE_PROD drone secret"
     export KUBE_TOKEN=${HOCS_DATA_SERVICE_PROD}
     export REPLICAS="2"
-    export DNS_PREFIX=data.alf
+    export DNS_PREFIX=data.alf.
 else
     export DNS_PREFIX=data-${ENVIRONMENT}.alf-notprod.
     if [[ ${ENVIRONMENT} == "qa" ]] ; then
