@@ -79,7 +79,7 @@ spec:
               readOnly: true
 
         - name: proxy
-          image: quay.io/ukhomeofficedigital/nginx-proxy:v3.2.11
+          image: quay.io/ukhomeofficedigital/nginx-proxy:v3.4.2
           imagePullPolicy: Always
           securityContext:
             runAsNonRoot: true
@@ -89,11 +89,11 @@ spec:
                 - SETGID
           resources:
             limits:
-              memory: "100Mi"
-              cpu: 100m
+              memory: 512Mi
+              cpu: 350m
             requests:
-              memory: "50Mi"
-              cpu: 100m
+              memory: 256Mi
+              cpu: 250m
           env:
             - name: PROXY_SERVICE_HOST
               value: '127.0.0.1'
@@ -140,7 +140,7 @@ spec:
 
           env:
             - name: JAVA_OPTS
-              value: '-Xms150m -Xmx768m -Djavax.net.ssl.trustStore=/etc/keystore/truststore.jks'
+              value: '-Xms250m -Xmx1500m -Djavax.net.ssl.trustStore=/etc/keystore/truststore.jks'
             - name: JDK_TRUST_FILE
               value: '/etc/keystore/truststore.jks'
             - name: SERVER_PORT
@@ -203,7 +203,7 @@ spec:
               cpu: 700m
               memory: 2048Mi
             requests:
-              cpu: 100m
+              cpu: 250m
               memory: 630Mi
           ports:
             - name: http
