@@ -7,6 +7,8 @@ if [[ -z ${VERSION} ]] ; then
     export VERSION=${IMAGE_VERSION}
 fi
 
+export IP_WHITELIST=${POISE_WHITELIST}
+
 if [[ ${ENVIRONMENT} == "prod" ]] ; then
     echo "deploy ${VERSION} to prod namespace, using HOCS_DATA_SERVICE_PROD drone secret"
     export KUBE_TOKEN=${HOCS_DATA_SERVICE_PROD}
