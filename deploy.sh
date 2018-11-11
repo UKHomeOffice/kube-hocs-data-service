@@ -28,7 +28,7 @@ else
 fi
 
 export DOMAIN_NAME=${DNS_PREFIX}homeoffice.gov.uk
-export DOMAIN_NAME=${LEGACY_DNS_PREFIX}homeoffice.gov.uk
+export LEGACY_DOMAIN_NAME=${LEGACY_DNS_PREFIX}homeoffice.gov.uk
 
 if [[ -z ${KUBE_TOKEN} ]] ; then
     echo "Failed to find a value for KUBE_TOKEN - exiting"
